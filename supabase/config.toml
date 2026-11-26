@@ -1,0 +1,11 @@
+project_id = "nong-lychee"
+
+[functions.line-webhook]
+verify_jwt = false
+
+[functions.sync-knowledge]
+# ป้องกันด้วย x-sync-secret แทน JWT (Apps Script ไม่มี JWT ของผู้ใช้)
+verify_jwt = false
+
+[functions.mascot-chat]
+verify_jwt = true

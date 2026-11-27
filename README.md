@@ -132,7 +132,7 @@ Edge Function `nong-lychee-sync` แบ่งไฟล์เป็นชิ้�
 
 ## โมเดล 3D
 
-- ค่าเริ่มต้น: **โมเดล Procedural** ในโค้ด (`src/components/Mascot3D.tsx`) — ฮู้ดเปลือกลิ้นจี่สีแดงผิวขรุขระ, ใบลิ้นจี่สีเขียว, ใบหน้าขาวใสแก้มชมพู, ชุดนักเรียนประถม พร้อมอารมณ์ HAPPY / EXCITED / THINKING / SAD / SURPRISED / WAVE
+- ค่าเริ่มต้น: **โมเดล Procedural** ในโค้ด (`src/components/Mascot3D.tsx`) — ฮู้ดเปลือกลิ้นจี่หนามแหลมประดับกิ๊บเขียว ใบและผลจิ๋วด้านบน ดวงตาสีน้ำตาลเป็นประกาย แก้มชมพู ชุดนักเรียนหญิง (โบว์กรมท่า กระโปรงจีบ อกขวาปักชื่อ `น้องลิ้นจี่` / `โรงเรียนบ้านหาดเค็ด` และอกซ้ายติดโลโก้ `public/logo-hadket-2026.png`) พร้อมอารมณ์ HAPPY / EXCITED / THINKING / SAD / SURPRISED / WAVE
 - ใช้โมเดลของจริง: วางไฟล์ `.glb` หรือ `.vrm` ที่ `public/models/` แล้วตั้ง `VITE_MASCOT_MODEL_URL=/models/nong-lychee.glb`
   - `.vrm` ควบคุมปากด้วย expression `aa` และอารมณ์ `happy/sad/surprised/relaxed`
   - `.glb` ขยับปากผ่าน morph target ชื่อ `mouthOpen` / `jawOpen` / `viseme_aa` / `aa`

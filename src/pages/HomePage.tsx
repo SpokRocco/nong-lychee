@@ -66,7 +66,15 @@ export function HomePage() {
 }
 
 function StatusPill({ chat }: { chat: ReturnType<typeof useMascotChat> }) {
-  const label = chat.listening ? 'กำลังฟัง…' : chat.busy ? 'กำลังคิด…' : chat.speaking ? 'กำลังพูด…' : '';
+  const label = chat.listening
+    ? 'กำลังฟัง…'
+    : chat.busy
+      ? 'กำลังคิด…'
+      : chat.speaking
+        ? 'กำลังพูด…'
+        : chat.voiceMode && chat.standby
+          ? 'รอฟังคำว่า “น้องลิ้นจี่”'
+          : '';
   if (!label) return null;
   return (
     <div className="absolute right-4 top-4 z-10 rounded-full bg-lychee-600 px-3 py-1 text-xs font-medium text-white shadow-soft" role="status">

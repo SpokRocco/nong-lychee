@@ -1,5 +1,10 @@
-// สมองกลางของน้องลิ้นจี่ (ใช้ร่วมกันระหว่าง mascot-chat และ line-webhook)
+// สมองกลางของน้องลิ้นจี่ (ใช้ร่วมกันระหว่าง nong-lychee-chat และ nong-lychee-line)
 // รันบน Supabase Edge Functions (Deno)
+//
+// โปรเจกต์ Supabase นี้ใช้ร่วมกับเว็บไซต์โรงเรียน จึงแยกทุกอย่างของน้องลิ้นจี่ออกมา:
+//  - ฐานข้อมูล: schema "nong_lychee" เท่านั้น (ดู supabase/nong-lychee/schema.sql)
+//  - Secrets  : ขึ้นต้นด้วย NONG_LYCHEE_ (secrets ของ Supabase เป็นระดับโปรเจกต์ ใช้ชื่อกลางๆ จะชนกับระบบอื่นได้)
+//  - Functions: ขึ้นต้นด้วย nong-lychee-
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 
 export type Mode = 'SCHOOL_INFO' | 'TUTOR';
@@ -21,24 +26,43 @@ export interface BrainOutput {
   sources: { file_name: string; category: string; similarity: number }[];
 }
 
+export const DB_SCHEMA = 'nong_lychee';
+
+/** อ่าน secret ของน้องลิ้นจี่ (ต้องมี prefix NONG_LYCHEE_ เสมอ) */
+export function secret(name: string): string | undefined {
+  return Deno.env.get(`NONG_LYCHEE_${name}`);
+}
+
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
-export const GEMINI_MODEL = Deno.env.get('GEMINI_MODEL') ?? 'gemini-2.5-flash';
+export const GEMINI_MODEL = secret('GEMINI_MODEL') ?? 'gemini-2.5-flash';
 // หมายเหตุ: text-embedding-004 ถูกปิดบริการบน Gemini API (14 ม.ค. 2569)
 // ค่าเริ่มต้นจึงเป็น gemini-embedding-001 + outputDimensionality=768 เพื่อให้ตรงกับ vector(768) ในฐานข้อมูล
-// ถ้าบัญชีของคุณยังใช้ text-embedding-004 ได้ ให้ตั้ง GEMINI_EMBEDDING_MODEL=text-embedding-004
-export const EMBED_MODEL = Deno.env.get('GEMINI_EMBEDDING_MODEL') ?? 'gemini-embedding-001';
+// ถ้าบัญชีของคุณยังใช้ text-embedding-004 ได้ ให้ตั้ง NONG_LYCHEE_GEMINI_EMBEDDING_MODEL=text-embedding-004
+export const EMBED_MODEL = secret('GEMINI_EMBEDDING_MODEL') ?? 'gemini-embedding-001';
 const EMBED_DIM = 768;
 const EMOTIONS: Emotion[] = ['HAPPY', 'EXCITED', 'THINKING', 'SAD', 'SURPRISED', 'WAVE'];
 
+/** Supabase client (service_role) ที่ชี้ไปที่ schema nong_lychee เท่านั้น */
 export function adminClient(): SupabaseClient {
   return createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
     auth: { persistSession: false },
+    db: { schema: DB_SCHEMA },
   });
 }
 
+/** ตรวจว่า JWT ที่แนบมาเป็นผู้ใช้ที่ล็อกอินจริง และอยู่ในตาราง nong_lychee.admins */
+export async function isAdminToken(db: SupabaseClient, token: string): Promise<boolean> {
+  if (!token) return false;
+  // anon key ไม่ใช่ JWT ของผู้ใช้ -> getUser จะล้มเหลว
+  const { data, error } = await db.auth.getUser(token);
+  if (error || !data.user) return false;
+  const { data: row, error: e2 } = await db.from('admins').select('user_id').eq('user_id', data.user.id).maybeSingle();
+  return !e2 && !!row;
+}
+
 function geminiKey(): string {
-  const k = Deno.env.get('GEMINI_API_KEY');
-  if (!k) throw new Error('GEMINI_API_KEY is not set');
+  const k = secret('GEMINI_API_KEY');
+  if (!k) throw new Error('NONG_LYCHEE_GEMINI_API_KEY is not set');
   return k;
 }
 
@@ -78,7 +102,7 @@ export async function embedTexts(
 export async function retrieve(db: SupabaseClient, question: string) {
   try {
     const [vec] = await embedTexts([question], 'RETRIEVAL_QUERY');
-    const { data, error } = await db.rpc('match_school_knowledge', {
+    const { data, error } = await db.rpc('match_knowledge', {
       query_embedding: vec,
       match_threshold: 0.45,
       match_count: 5,
@@ -226,7 +250,7 @@ export async function summarize(db: SupabaseClient, days: number): Promise<strin
   return json?.candidates?.[0]?.content?.parts?.map((p: any) => p.text ?? '').join('') ?? '';
 }
 
-const allowed = Deno.env.get('ALLOWED_ORIGIN') ?? '*';
+const allowed = secret('ALLOWED_ORIGIN') ?? '*';
 export const corsHeaders = {
   'Access-Control-Allow-Origin': allowed,
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',

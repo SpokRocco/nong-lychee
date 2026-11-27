@@ -1,8 +1,8 @@
-// POST /functions/v1/sync-knowledge   (เรียกจาก Google Apps Script)
-// Header: x-sync-secret: <SYNC_SECRET>
+// POST /functions/v1/nong-lychee-sync   (เรียกจาก Google Apps Script)
+// Header: x-sync-secret: <ค่าเดียวกับ secret NONG_LYCHEE_SYNC_SECRET>
 // Body: { drive_file_id, file_name, category, content }  หรือ { drive_file_id, delete: true }
 // ไฟล์ยาวจะถูกแบ่งเป็นชิ้น (chunk) เก็บเป็นแถวละชิ้น โดยใช้ drive_file_id = "<fileId>#<index>"
-import { adminClient, corsHeaders, embedTexts, jsonResponse } from '../_shared/brain.ts';
+import { adminClient, corsHeaders, embedTexts, jsonResponse, secret } from '../_nong_lychee_shared/brain.ts';
 
 function chunkText(text: string, size = 1200, overlap = 150): string[] {
   const clean = text.replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim();
@@ -33,9 +33,9 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return jsonResponse({ error: 'method not allowed' }, 405);
 
-  const secret = Deno.env.get('SYNC_SECRET') ?? '';
+  const expected = secret('SYNC_SECRET') ?? '';
   const provided = req.headers.get('x-sync-secret') ?? '';
-  if (!secret || !safeEqual(secret, provided)) return jsonResponse({ error: 'unauthorized' }, 401);
+  if (!expected || !safeEqual(expected, provided)) return jsonResponse({ error: 'unauthorized' }, 401);
 
   try {
     const body = await req.json();
@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
     const db = adminClient();
 
     if (body.delete) {
-      await db.from('school_knowledge').delete().like('drive_file_id', `${fileId}#%`);
+      await db.from('knowledge').delete().like('drive_file_id', `${fileId}#%`);
       return jsonResponse({ ok: true, deleted: fileId });
     }
 
@@ -66,17 +66,17 @@ Deno.serve(async (req) => {
       embedding: vectors[i] as unknown as string, // supabase-js ส่ง array เป็น JSON ให้ pgvector แปลงเอง
       updated_at: new Date().toISOString(),
     }));
-    const { error } = await db.from('school_knowledge').upsert(rows, { onConflict: 'drive_file_id' });
+    const { error } = await db.from('knowledge').upsert(rows, { onConflict: 'drive_file_id' });
     if (error) throw error;
 
     // ลบชิ้นเก่าที่เกินมา (กรณีไฟล์สั้นลง)
     const { data: existing } = await db
-      .from('school_knowledge')
+      .from('knowledge')
       .select('drive_file_id')
       .like('drive_file_id', `${fileId}#%`);
     const keep = new Set(rows.map((r) => r.drive_file_id));
     const stale = (existing ?? []).map((r) => r.drive_file_id as string).filter((id) => !keep.has(id));
-    if (stale.length) await db.from('school_knowledge').delete().in('drive_file_id', stale);
+    if (stale.length) await db.from('knowledge').delete().in('drive_file_id', stale);
 
     return jsonResponse({ ok: true, chunks: rows.length });
   } catch (e) {

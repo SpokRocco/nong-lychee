@@ -1,7 +1,7 @@
 import { ENV, type Channel, type Mode } from './config';
 import { EMOTIONS, type Emotion } from './mascotBus';
 import { factsAsContext, matchFact } from './localKnowledge';
-import { isSupabaseConfigured, supabase } from './supabase';
+import { FN_CHAT, isSupabaseConfigured, supabase } from './supabase';
 
 export interface ChatTurn {
   role: 'user' | 'assistant';
@@ -30,7 +30,7 @@ function normalizeEmotion(e: unknown): Emotion {
 
 async function viaEdge(p: AskParams): Promise<AskResult> {
   if (!supabase) throw new Error('supabase not configured');
-  const { data, error } = await supabase.functions.invoke('mascot-chat', {
+  const { data, error } = await supabase.functions.invoke(FN_CHAT, {
     body: {
       action: 'chat',
       question: p.question,
@@ -124,21 +124,6 @@ function offline(p: AskParams): AskResult {
   };
 }
 
-/** บันทึก analytics ตรงเมื่อ Edge Function ใช้ไม่ได้ (RLS อนุญาต insert สาธารณะ) */
-async function logDirect(p: AskParams, r: AskResult) {
-  if (!supabase) return;
-  const { error } = await supabase.from('chat_analytics').insert({
-    channel: p.channel,
-    mode: p.mode,
-    user_role: p.role,
-    question: p.question.slice(0, 600),
-    topic_tag: r.topic_tag,
-    ai_response: r.answer,
-    emotion_used: r.emotion,
-  });
-  if (error) console.warn('analytics insert failed', error.message);
-}
-
 export async function askMascot(p: AskParams): Promise<AskResult> {
   if (isSupabaseConfigured) {
     try {
@@ -147,24 +132,21 @@ export async function askMascot(p: AskParams): Promise<AskResult> {
       console.warn('Edge function unavailable, falling back', e);
     }
   }
-  let result: AskResult;
+  // ไม่บันทึก analytics จากเบราว์เซอร์โดยตรง: ผู้เยี่ยมชม (anon) ไม่มีสิทธิ์เขียนฐานข้อมูล nong_lychee
+  // การบันทึกทำโดย Edge Function nong-lychee-chat เท่านั้น
   if (ENV.devGeminiKey) {
     try {
-      result = await viaDevGemini(p);
+      return await viaDevGemini(p);
     } catch (e) {
       console.warn('Dev Gemini failed', e);
-      result = offline(p);
     }
-  } else {
-    result = offline(p);
   }
-  void logDirect(p, result);
-  return result;
+  return offline(p);
 }
 
 export async function fetchExecutiveSummary(days: number): Promise<string> {
   if (!supabase) throw new Error('Supabase ยังไม่ได้ตั้งค่า');
-  const { data, error } = await supabase.functions.invoke('mascot-chat', { body: { action: 'summary', days } });
+  const { data, error } = await supabase.functions.invoke(FN_CHAT, { body: { action: 'summary', days } });
   if (error) throw error;
   return String(data?.summary ?? '');
 }

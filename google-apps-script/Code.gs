@@ -1,18 +1,18 @@
 /**
- * Google Apps Script: ซิงก์ไฟล์ใน Google Drive -> Supabase (school_knowledge) ผ่าน Edge Function sync-knowledge
+ * Google Apps Script: ซิงก์ไฟล์ใน Google Drive -> Supabase (schema nong_lychee ตาราง knowledge — แยกจากฐานข้อมูลเว็บโรงเรียน) ผ่าน Edge Function nong-lychee-sync
  *
  * วิธีตั้งค่า
  *  1) script.google.com > New project > วางโค้ดนี้
  *  2) Services (+) > เพิ่ม "Drive API" (Advanced Drive Service v3) เพื่อใช้ OCR ไฟล์ PDF
  *  3) Project Settings > Script properties เพิ่ม:
  *       FOLDER_ID   = ไอดีโฟลเดอร์ Google Drive ที่เก็บเอกสารโรงเรียน
- *       SYNC_URL    = https://YOUR-PROJECT.supabase.co/functions/v1/sync-knowledge
- *       SYNC_SECRET = ค่าเดียวกับ secret SYNC_SECRET ใน Supabase
+ *       SYNC_URL    = https://YOUR-PROJECT.supabase.co/functions/v1/nong-lychee-sync
+ *       SYNC_SECRET = ค่าเดียวกับ secret NONG_LYCHEE_SYNC_SECRET ใน Supabase
  *  4) รัน setupTrigger() หนึ่งครั้ง (อนุญาตสิทธิ์) แล้วระบบจะซิงก์ทุก 1 ชั่วโมง; หรือรัน syncAll() เอง
  *
  * โครงสร้างโฟลเดอร์: ชื่อโฟลเดอร์ย่อยระดับแรก = category (เช่น วิชาการ, กิจกรรม, บุคลากร, รับสมัครนักเรียน)
  * รองรับ: Google Docs, Google Sheets, PDF (OCR ภาษาไทย)
- * ข้อควรระวัง: ห้ามใส่ข้อมูลส่วนบุคคลที่ไม่ควรเผยแพร่ (เช่น เลขบัตรประชาชน) ในโฟลเดอร์นี้ เพราะตาราง school_knowledge อ่านได้แบบสาธารณะ
+ * ข้อควรระวัง: ห้ามใส่ข้อมูลส่วนบุคคลที่ไม่ควรเผยแพร่ (เช่น เลขบัตรประชาชน) ในโฟลเดอร์นี้ (ตาราง nong_lychee.knowledge ถูกอ่านผ่าน Edge Function และถูกนำไปเป็นคำตอบของน้องลิ้นจี่ให้ทุกคนเห็น)
  */
 
 const MIME_DOC = 'application/vnd.google-apps.document';
@@ -109,6 +109,6 @@ function post_(payload) {
     muteHttpExceptions: true,
   });
   const ok = res.getResponseCode() >= 200 && res.getResponseCode() < 300;
-  if (!ok) console.error('sync-knowledge ' + res.getResponseCode() + ': ' + res.getContentText());
+  if (!ok) console.error('nong-lychee-sync ' + res.getResponseCode() + ': ' + res.getContentText());
   return ok;
 }

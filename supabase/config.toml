@@ -1,11 +1,18 @@
+# ไฟล์นี้ใช้เฉพาะ Edge Functions ของน้องลิ้นจี่ (โปรเจกต์ Supabase ใช้ร่วมกับเว็บไซต์โรงเรียน)
+#
+# ⚠️ ห้ามรันคำสั่งเหล่านี้กับโปรเจกต์ที่ใช้ร่วมกับเว็บโรงเรียน เพราะจะกระทบฐานข้อมูล/ตั้งค่าของเว็บโรงเรียน:
+#      supabase db push | supabase db reset | supabase config push | supabase migration ...
+#    ฐานข้อมูลของน้องลิ้นจี่ติดตั้งด้วยการรัน supabase/nong-lychee/schema.sql ใน SQL Editor เท่านั้น
+#    Deploy เฉพาะ function ของเราโดยระบุชื่อ เช่น:  supabase functions deploy nong-lychee-chat
 project_id = "nong-lychee"
 
-[functions.line-webhook]
-verify_jwt = false
+[functions.nong-lychee-chat]
+verify_jwt = true
 
-[functions.sync-knowledge]
+[functions.nong-lychee-sync]
 # ป้องกันด้วย x-sync-secret แทน JWT (Apps Script ไม่มี JWT ของผู้ใช้)
 verify_jwt = false
 
-[functions.mascot-chat]
-verify_jwt = true
+[functions.nong-lychee-line]
+# ป้องกันด้วยลายเซ็น x-line-signature ของ LINE
+verify_jwt = false

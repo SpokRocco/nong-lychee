@@ -1,10 +1,10 @@
-// POST /functions/v1/line-webhook   (ตั้งเป็น Webhook URL ใน LINE Developers Console)
-// Deploy ด้วย:  supabase functions deploy line-webhook --no-verify-jwt
+// POST /functions/v1/nong-lychee-line   (ตั้งเป็น Webhook URL ใน LINE Developers Console)
+// Deploy ด้วย:  supabase functions deploy nong-lychee-line --no-verify-jwt
 // ตรวจลายเซ็น x-line-signature (HMAC-SHA256 ด้วย Channel secret) ก่อนประมวลผลทุกครั้ง
-import { adminClient, logAnalytics, think, type Emotion, type Mode } from '../_shared/brain.ts';
+import { adminClient, logAnalytics, secret, think, type Emotion, type Mode } from '../_nong_lychee_shared/brain.ts';
 
-const SECRET = Deno.env.get('LINE_CHANNEL_SECRET') ?? '';
-const TOKEN = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN') ?? '';
+const SECRET = secret('LINE_CHANNEL_SECRET') ?? '';
+const TOKEN = secret('LINE_CHANNEL_ACCESS_TOKEN') ?? '';
 
 async function verifySignature(raw: string, signature: string): Promise<boolean> {
   if (!SECRET || !signature) return false;

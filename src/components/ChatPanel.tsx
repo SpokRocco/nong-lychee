@@ -65,6 +65,15 @@ export function ChatPanel({ chat }: { chat: Chat }) {
             ))}
           </select>
         </label>
+        <button
+          className={`btn !px-3 !py-1.5 ${chat.voiceMode ? 'btn-primary' : 'btn-ghost'}`}
+          onClick={chat.toggleVoice}
+          disabled={!sttOk}
+          aria-pressed={chat.voiceMode}
+          title={sttOk ? 'โหมดสั่งงานด้วยเสียง: พูดคุยกับน้องลิ้นจี่ต่อเนื่องโดยไม่ต้องกดไมค์' : 'เบราว์เซอร์ไม่รองรับการรับเสียง (ใช้ Chrome หรือ Edge)'}
+        >
+          <Mic size={15} aria-hidden /> สั่งงานด้วยเสียง{chat.voiceMode ? ': เปิด' : ''}
+        </button>
         <button className="btn btn-ghost !p-2" onClick={chat.toggleTts} aria-label={chat.ttsOn ? 'ปิดเสียงน้องลิ้นจี่' : 'เปิดเสียงน้องลิ้นจี่'} title="เสียงพูด">
           {chat.ttsOn ? <Volume2 size={16} /> : <VolumeX size={16} />}
         </button>
@@ -72,6 +81,25 @@ export function ChatPanel({ chat }: { chat: Chat }) {
           <Trash2 size={16} />
         </button>
       </div>
+
+      {chat.voiceMode && (
+        <div className="border-b border-lychee-100 bg-lychee-50/60 px-4 py-2 text-xs text-lychee-800" role="status" aria-live="polite">
+          <p className="font-medium">
+            {chat.busy
+              ? 'กำลังคิด…'
+              : chat.speaking
+                ? 'น้องกำลังพูด (ไมค์ปิดชั่วคราวเพื่อกันเสียงสะท้อน)'
+                : chat.listening
+                  ? 'กำลังฟังคุณอยู่… พูดได้เลยค่ะ'
+                  : chat.standby
+                    ? 'รอฟังคำว่า “น้องลิ้นจี่” …'
+                    : 'กำลังเตรียมไมค์…'}
+          </p>
+          <p className="mt-0.5 text-lychee-900/60">
+            ลองพูดว่า “น้องลิ้นจี่ ลิ้นจี่เมืองจังคืออะไร” · “โหมดติวเตอร์” · “พูดอีกครั้ง” · “จบการสนทนา” · “ปิดโหมดเสียง”
+          </p>
+        </div>
+      )}
 
       {/* ข้อความ */}
       <div className="flex-1 space-y-3 overflow-y-auto p-4" aria-live="polite">
@@ -104,7 +132,7 @@ export function ChatPanel({ chat }: { chat: Chat }) {
             </div>
           </div>
         ))}
-        {chat.listening && (
+        {(chat.listening || chat.interim) && (
           <div className="flex justify-end">
             <div className="max-w-[85%] rounded-2xl rounded-br-md border border-dashed border-lychee-300 px-4 py-2 text-sm text-lychee-700">
               {chat.interim || 'กำลังฟัง… พูดได้เลยค่ะ'}

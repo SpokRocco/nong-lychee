@@ -112,12 +112,26 @@ function Panel({ demo = false }: { demo?: boolean }) {
     if (demo || !supabase) return;
     setLoading(true);
     setErr('');
+    // โปรเจกต์ Supabase ใช้ร่วมกับเว็บโรงเรียน: ผู้ใช้ที่ล็อกอินได้ ≠ ผู้ดูแลน้องลิ้นจี่ จึงตรวจสิทธิ์จากตาราง nong_lychee.admins
+    const adm = await supabase.rpc('is_admin');
+    if (adm.error) {
+      setErr('เชื่อมต่อฐานข้อมูลน้องลิ้นจี่ไม่สำเร็จ (ตรวจสอบว่ารัน supabase/nong-lychee/schema.sql แล้ว และเพิ่ม nong_lychee ใน Exposed schemas)');
+      setLoading(false);
+      return;
+    }
+    if (adm.data !== true) {
+      setTop([]);
+      setRows([]);
+      setErr('บัญชีนี้ยังไม่ได้รับสิทธิ์ดูแดชบอร์ดน้องลิ้นจี่ — ให้ผู้ดูแลระบบเพิ่มบัญชีในตาราง nong_lychee.admins');
+      setLoading(false);
+      return;
+    }
     const since = new Date(Date.now() - days * 86400_000).toISOString();
     const [t, r] = await Promise.all([
       supabase.from('executive_top_topics').select('*'),
       supabase.from('chat_analytics').select('id,channel,mode,user_role,question,topic_tag,created_at').gte('created_at', since).order('created_at', { ascending: false }).limit(500),
     ]);
-    if (t.error || r.error) setErr('โหลดข้อมูลไม่สำเร็จ (ตรวจสอบว่ารัน SUPABASE_SETUP.sql แล้ว และล็อกอินด้วยผู้ใช้ที่ได้รับอนุญาต)');
+    if (t.error || r.error) setErr('โหลดข้อมูลไม่สำเร็จ (ตรวจสอบว่ารัน supabase/nong-lychee/schema.sql แล้ว)');
     setTop((t.data as TopRow[]) ?? []);
     setRows((r.data as Row[]) ?? []);
     setLoading(false);
@@ -136,7 +150,7 @@ function Panel({ demo = false }: { demo?: boolean }) {
     try {
       setSummary(demo ? 'ตัวอย่างรายงาน: เชื่อมต่อ Supabase และ Edge Function เพื่อให้ Gemini สรุปรายงานผู้บริหารจากข้อมูลจริง' : await fetchExecutiveSummary(days));
     } catch {
-      setSummary('สร้างรายงานไม่สำเร็จ ตรวจสอบว่า Deploy Edge Function mascot-chat และตั้งค่า GEMINI_API_KEY แล้ว');
+      setSummary('สร้างรายงานไม่สำเร็จ ตรวจสอบว่า Deploy Edge Function nong-lychee-chat, ตั้งค่า NONG_LYCHEE_GEMINI_API_KEY แล้ว และบัญชีนี้อยู่ในตาราง nong_lychee.admins');
     }
     setSumLoading(false);
   };

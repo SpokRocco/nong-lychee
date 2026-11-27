@@ -1,10 +1,15 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+// พอร์ตเริ่มต้น 8080 — ถ้าพอร์ตถูกใช้อยู่/ถูกระบบสงวนไว้ (เจอบ่อยบน Windows) Vite จะขยับไปพอร์ตถัดไปเอง
+// แล้วแสดง URL จริงใน Terminal (เช่น http://localhost:8081) แทนที่จะล้มเหลวทันที
+// อยากกำหนดเอง:  PORT=3000 npm run dev
+const port = Number(process.env.PORT) || 8080;
+
 export default defineConfig({
   plugins: [react()],
-  server: { port: 8080, strictPort: true, host: true },
-  preview: { port: 8080, strictPort: true, host: true },
+  server: { port, strictPort: false, host: true },
+  preview: { port, strictPort: false, host: true },
   build: {
     chunkSizeWarningLimit: 1500,
     rollupOptions: {

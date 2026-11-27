@@ -8,8 +8,8 @@ const port = Number(process.env.PORT) || 8080;
 
 export default defineConfig({
   plugins: [react()],
-  server: { port, strictPort: false, host: true },
-  preview: { port, strictPort: false, host: true },
+  server: { port, strictPort: false, host: true, allowedHosts: true },
+  preview: { port, strictPort: false, host: true, allowedHosts: true },
   build: {
     chunkSizeWarningLimit: 1500,
     rollupOptions: {

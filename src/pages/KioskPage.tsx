@@ -33,7 +33,10 @@ export function KioskPage() {
 
   const bumpIdle = useCallback(() => {
     clearTimeout(idleTimer.current);
-    idleTimer.current = setTimeout(() => live.current.clear(), IDLE_RESET_MS);
+    idleTimer.current = setTimeout(() => {
+      live.current.clear();
+      live.current.sleep(); // จบช่วงสนทนา: ต่อไปต้องเรียก "น้องลิ้นจี่" หรือรอทักทายอัตโนมัติรอบใหม่
+    }, IDLE_RESET_MS);
   }, []);
 
   const greet = useCallback(() => {
@@ -44,7 +47,10 @@ export function KioskPage() {
     lastGreet.current = now;
     const g = greeting();
     // ทักทายแล้วเปิดไมค์ฟังต่ออัตโนมัติ เพื่อให้ผู้มาเยือนพูดถามได้ทันที
-    c.say(g, 'WAVE', () => void live.current.startMic());
+    c.say(g, 'WAVE', () => {
+      live.current.wake();
+      void live.current.startMic();
+    });
     bumpIdle();
   }, [bumpIdle]);
 
@@ -75,7 +81,9 @@ export function KioskPage() {
 
   const start = async () => {
     setStarted(true); // การแตะครั้งแรก = user gesture ที่เบราว์เซอร์ต้องการสำหรับเสียงพูด
-    live.current.say(`สวัสดีค่ะ ระบบน้องลิ้นจี่พร้อมให้บริการแล้วค่ะ`, 'WAVE');
+    // เปิดโหมดสั่งงานด้วยเสียง (ฟังต่อเนื่อง) ถ้าเบราว์เซอร์รองรับ ไม่งั้นแค่ทักทาย
+    const hello = 'สวัสดีค่ะ ระบบน้องลิ้นจี่พร้อมให้บริการแล้วค่ะ พูดถามได้เลย หรือเรียกชื่อน้องลิ้นจี่ก่อนก็ได้นะคะ';
+    if (!live.current.enableVoice(hello)) live.current.say(hello, 'WAVE');
     await startCamera();
   };
 
@@ -117,7 +125,7 @@ export function KioskPage() {
             ) : (
               <p className="text-xl leading-relaxed sm:text-2xl">
                 {started
-                  ? 'เดินเข้ามาใกล้ ๆ น้องลิ้นจี่จะทักทาย หรือแตะปุ่มไมค์เพื่อพูดถามได้เลยค่ะ'
+                  ? 'เดินเข้ามาใกล้ ๆ น้องลิ้นจี่จะทักทาย หรือพูดว่า “น้องลิ้นจี่” แล้วถามได้เลยค่ะ'
                   : 'แตะปุ่ม "เริ่มระบบ" เพื่อเปิดเสียงและกล้องตรวจจับผู้มาเยือน'}
               </p>
             )}
@@ -144,11 +152,13 @@ export function KioskPage() {
             ) : (
               <>
                 <button
-                  onClick={chat.toggleMic}
+                  onClick={chat.toggleVoice}
                   className={`btn !p-5 ${chat.listening ? 'bg-white text-lychee-700 mic-live' : 'bg-leaf-600 text-white hover:bg-leaf-700'}`}
-                  aria-label={chat.listening ? 'หยุดฟัง' : 'แตะเพื่อพูดถาม'}
+                  aria-pressed={chat.voiceMode}
+                  aria-label={chat.voiceMode ? 'ปิดโหมดสั่งงานด้วยเสียง' : 'เปิดโหมดสั่งงานด้วยเสียง'}
+                  title={chat.voiceMode ? (chat.standby ? 'รอฟังคำว่า “น้องลิ้นจี่” — แตะเพื่อปิด' : 'กำลังฟัง — แตะเพื่อปิด') : 'แตะเพื่อเปิดโหมดสั่งงานด้วยเสียง'}
                 >
-                  {chat.listening ? <MicOff size={30} /> : <Mic size={30} />}
+                  {chat.voiceMode ? <MicOff size={30} /> : <Mic size={30} />}
                 </button>
                 <button
                   onClick={camState === 'mediapipe' || camState === 'motion' ? stopCamera : () => void startCamera()}

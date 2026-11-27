@@ -30,7 +30,7 @@ export interface ListenHandlers {
   onError?: (code: string) => void;
 }
 
-export function startListening(h: ListenHandlers): () => void {
+export function startListening(h: ListenHandlers): (discard?: boolean) => void {
   const Ctor = getRecognitionCtor();
   if (!Ctor) {
     h.onError?.('not-supported');
@@ -66,9 +66,13 @@ export function startListening(h: ListenHandlers): () => void {
   } catch {
     finish();
   }
-  return () => {
+  // discard=false: หยุดฟังแล้วส่งสิ่งที่ได้ยินแล้ว (แตะไมค์เพื่อจบประโยค)
+  // discard=true : ยกเลิกทิ้ง ไม่ส่งผล (ใช้ตอนน้องกำลังจะพูด เพื่อไม่ให้ไมค์ได้ยินเสียงตัวเอง)
+  return (discard = false) => {
+    if (discard) finalText = '';
     try {
-      rec.stop();
+      if (discard) rec.abort();
+      else rec.stop();
     } catch {
       /* ignore */
     }
